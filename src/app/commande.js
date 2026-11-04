@@ -19,6 +19,7 @@ export default function Commande() {
   const { data: settings } = useFetch('/settings/public');
   const [editing, setEditing] = useState(null);
   const [quote, setQuote] = useState(null);
+  const [quoteError, setQuoteError] = useState(null);
   const [promoInput, setPromoInput] = useState('');
   const myPromos = useFetch(user ? '/account/promotions' : null);
   const { values, set, setValues, submitting, submit } = useForm({
@@ -42,7 +43,9 @@ export default function Commande() {
     api.post('/orders/quote', {
       shop_id: shopId, address_id: values.address_id, delivery_mode: values.delivery_mode,
       payment_plan: values.payment_plan, promo_code: values.promo_code || undefined,
-    }).then((r) => setQuote(r.data)).catch(() => setQuote(null));
+    }).then((r) => { setQuote(r.data); setQuoteError(null); })
+      // Ex. : zone non desservie par la boutique
+      .catch((e) => { setQuote(null); setQuoteError(e.message); });
   }, [shopId, values.address_id, values.delivery_mode, values.payment_plan, values.promo_code, cart.subtotal]);
 
   if (!user) return <Redirect href="/connexion" />;
@@ -80,9 +83,10 @@ export default function Commande() {
 
         <Text style={[ui.h3, { marginTop: 22, marginBottom: 10 }]}><Icon name="truck-fast" size={14} color={colors.gold} />  2. Livraison par {shopName}</Text>
         {(quote?.delivery_options || []).map((o) => (
-          <Choice key={o.mode} label={o.label} sub={o.fee === 0 ? 'Gratuit' : price(o.fee)} icon={DELIVERY_MODES[o.mode]?.[1] || 'truck-fast'}
+          <Choice key={o.mode} label={o.label} sub={`${o.fee === 0 ? 'Gratuit' : price(o.fee)}${o.zone ? ` · ${o.zone}` : ''}`} icon={DELIVERY_MODES[o.mode]?.[1] || 'truck-fast'}
             on={quote?.delivery_mode === o.mode} onPress={() => set('delivery_mode')(o.mode)} />
         ))}
+        {quoteError ? <Text style={[ui.error, { backgroundColor: colors.dangerBg, padding: 10, borderRadius: 8, marginBottom: 8 }]}>{quoteError}</Text> : null}
         {quote?.shop?.delivery_info ? <Text style={[ui.small, { marginBottom: 8 }]}>{quote.shop.delivery_info}</Text> : null}
 
         <Text style={[ui.h3, { marginTop: 12, marginBottom: 10 }]}><Icon name="wallet" size={14} color={colors.gold} />  3. Comment voulez-vous payer ?</Text>

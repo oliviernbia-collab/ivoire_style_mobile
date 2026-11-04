@@ -6,7 +6,7 @@ import {
   Button, Card, ErrorView, Field, Loader, ProductImage, Screen, StatusBadge, styles as ui, useFetch, useForm,
 } from '../../components/ui';
 import { useFeedback } from '../../context/FeedbackContext';
-import { PaymentLabel } from '../../components/PaymentLogo';
+import { PaymentLabel, paymentLabel } from '../../components/PaymentLogo';
 import { api } from '../../lib/api';
 import { date, DELIVERY_MODES, ORDER_STATUS, PAYMENT_PLANS, PAYMENT_STATUS, price, showPaymentStatus } from '../../lib/format';
 import { colors, radius } from '../../lib/theme';
@@ -32,6 +32,8 @@ export default function CommandeDetail() {
   const { confirm, notify, showResult } = useFeedback();
   const [reviewing, setReviewing] = useState(null);
   const [returning, setReturning] = useState(false);
+  const [cancelling, setCancelling] = useState(null);
+  const [cancelBusy, setCancelBusy] = useState(false);
   const review = useForm({ rating: 5, comment: '' });
   const ret = useForm({ reason: '' });
 
@@ -40,14 +42,24 @@ export default function CommandeDetail() {
 
   const pendingPayment = o.status === 'pending' && !['succeeded', 'partially_paid'].includes(o.payment_status);
 
-  const cancel = async () => {
-    if (!(await confirm({ title: 'Annuler cette commande ?', message: 'Les articles seront remis en stock. Si vous avez payé, vous serez remboursé.', confirmLabel: 'Annuler la commande', cancelLabel: 'Garder', danger: true }))) return;
+  const doCancel = async (refundPhone) => {
+    setCancelBusy(true);
     try {
-      const res = await api.post(`/orders/${o.id}/cancel`, { reason: 'Annulée par le client' });
+      const res = await api.post(`/orders/${o.id}/cancel`, { reason: 'Annulée par le client', refund_phone: refundPhone || undefined });
+      setCancelling(null);
       await showResult({ title: 'Commande annulée', message: res.message });
       reload();
-    } catch (e) { notify.error(e.message); }
+    } catch (e) { notify.error(e.message); } finally { setCancelBusy(false); }
   };
+  const cancel = async () => {
+    // Déjà payé en ligne : le client confirme le numéro qui recevra le remboursement automatique
+    if (o.refund_phone || ['succeeded', 'partially_paid'].includes(o.payment_status)) {
+      setCancelling({ phone: (o.refund_phone || '').replace(/^\+225/, '') });
+      return;
+    }
+    if (await confirm({ title: 'Annuler cette commande ?', message: 'Les articles seront remis en stock.', confirmLabel: 'Annuler la commande', cancelLabel: 'Garder', danger: true })) doCancel();
+  };
+  const refundPhoneOk = /^(01|05|07)\d{8}$/.test((cancelling?.phone || '').replace(/\D/g, '').replace(/^(00)?225/, ''));
 
   const sendReview = review.submit(async (v) => {
     const res = await api.post(`/products/${reviewing.product_id}/reviews`, v);
@@ -148,6 +160,23 @@ export default function CommandeDetail() {
       <Sheet visible={returning} title="Demander un retour" onClose={() => setReturning(false)}>
         <Field label="Motif du retour" multiline value={ret.values.reason} onChangeText={ret.set('reason')} error={ret.errors.reason} hint="Taille, défaut, article non conforme…" />
         <Button title="Envoyer la demande" icon="paper-plane" onPress={sendReturn} loading={ret.submitting} />
+      </Sheet>
+
+      <Sheet visible={!!cancelling} title="Annuler la commande" onClose={() => setCancelling(null)}>
+        <Text style={[ui.muted, { marginBottom: 12 }]}>Les articles seront remis en stock et la somme payée en ligne vous sera remboursée automatiquement.</Text>
+        {o.refund_estimate && (
+          <View style={{ backgroundColor: colors.goldSoft, borderRadius: 8, padding: 12, marginBottom: 12, gap: 4 }}>
+            <View style={ui.between}><Text style={ui.muted}>Payé en ligne</Text><Text style={{ fontWeight: '700' }}>{price(o.refund_estimate.paid)}</Text></View>
+            <View style={ui.between}><Text style={ui.small}>Frais de remboursement ({o.refund_estimate.rate} %)</Text><Text style={ui.small}>− {price(o.refund_estimate.fee)}</Text></View>
+            <View style={ui.between}><Text style={{ fontWeight: '700' }}>Vous serez remboursé de</Text><Text style={{ fontWeight: '800', color: colors.goldDeep }}>{price(o.refund_estimate.amount)}</Text></View>
+          </View>
+        )}
+        <Field label={`Numéro ${o.refund_provider ? paymentLabel(o.refund_provider) : 'Mobile Money'} qui recevra le remboursement`} required
+          keyboardType="phone-pad" icon="phone" value={cancelling?.phone || ''} onChangeText={(t) => setCancelling({ phone: t })}
+          error={cancelling?.phone && !refundPhoneOk ? 'Numéro ivoirien à 10 chiffres (01, 05 ou 07…)' : null}
+          hint="Vérifiez qu’il s’agit bien de votre compte : le remboursement y sera envoyé." />
+        <Button title="Annuler et être remboursé" icon="ban" variant="danger" disabled={!refundPhoneOk} loading={cancelBusy} onPress={() => doCancel(cancelling.phone)} />
+        <Button title="Garder ma commande" variant="ghost" onPress={() => setCancelling(null)} style={{ marginTop: 8 }} />
       </Sheet>
     </Screen>
   );

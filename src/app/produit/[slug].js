@@ -29,6 +29,7 @@ export default function Produit() {
   const setQty = (f) => choose({ qty: f(qty) });
   const [adding, setAdding] = useState(false);
   const [imgIndex, setImgIndex] = useState(0);
+  const [showRates, setShowRates] = useState(false);
 
   const colorsList = useMemo(() => {
     const m = new Map();
@@ -138,6 +139,21 @@ export default function Produit() {
               {p.delivery_info.free_threshold > 0 && <Text style={ui.small}>Offerte dès {price(p.delivery_info.free_threshold)} d’achat</Text>}
               {p.delivery_info.shop_pickup && <Text style={ui.small}>Retrait gratuit en boutique</Text>}
               {p.delivery_info.note ? <Text style={ui.small}>{p.delivery_info.note}</Text> : null}
+              {p.delivery_info.zones?.length > 0 && (
+                <Pressable onPress={() => setShowRates((v) => !v)} hitSlop={6}>
+                  <Text style={[ui.small, { color: colors.goldDeep, fontWeight: '600' }]}>
+                    {showRates ? 'Masquer' : 'Voir'} les tarifs par commune et par ville
+                  </Text>
+                </Pressable>
+              )}
+              {showRates && p.delivery_info.zones?.map((z) => (
+                <View key={`${z.type}-${z.name}`} style={ui.between}>
+                  <Text style={ui.small}>{z.type === 'commune' ? `${z.name} (Abidjan)` : z.name}</Text>
+                  <Text style={[ui.small, { fontWeight: '700' }]}>
+                    {z.delivers ? price(z.fee ?? (z.type === 'commune' ? p.delivery_info.abidjan : p.delivery_info.other)) : 'Non desservi'}
+                  </Text>
+                </View>
+              ))}
             </View>
             <View style={{ gap: 6 }}>
               <Text style={ui.small}><Icon name="shield-halved" size={12} color={colors.goldDark} />  Paiement Mobile Money sécurisé</Text>

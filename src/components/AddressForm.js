@@ -4,7 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { colors } from '../lib/theme';
 
-const CITIES = ['Abidjan', 'Bouaké', 'Yamoussoukro', 'San-Pédro', 'Daloa', 'Korhogo'];
+const CITIES = ['Abidjan', 'Bouaké', 'Yamoussoukro', 'San-Pédro', 'Daloa', 'Korhogo', 'Man', 'Gagnoa', 'Grand-Bassam', 'Abengourou'];
+// À Abidjan, la commune détermine le tarif de livraison de chaque boutique
+const ABIDJAN_COMMUNES = ['Abobo', 'Adjamé', 'Attécoubé', 'Cocody', 'Koumassi', 'Marcory', 'Plateau', 'Port-Bouët', 'Treichville', 'Yopougon', 'Bingerville', 'Songon', 'Anyama'];
 
 export default function AddressForm({ address, visible, onClose, onSaved }) {
   const { user } = useAuth();
@@ -39,7 +41,15 @@ export default function AddressForm({ address, visible, onClose, onSaved }) {
             {CITIES.map((c) => <Chip key={c} label={c} on={values.city === c} onPress={() => set('city')(c)} />)}
           </View>
           <Field placeholder="Autre ville" value={values.city} onChangeText={set('city')} error={errors.city} />
-          <Field label="Commune" value={values.commune} onChangeText={set('commune')} placeholder="Ex. : Cocody" />
+          {/abidjan/i.test(values.city) && (
+            <>
+              <Text style={ui.label}>Commune *</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                {ABIDJAN_COMMUNES.map((c) => <Chip key={c} label={c} on={values.commune === c} onPress={() => set('commune')(c)} />)}
+              </View>
+            </>
+          )}
+          <Field label={/abidjan/i.test(values.city) ? undefined : 'Commune'} value={values.commune} onChangeText={set('commune')} placeholder="Ex. : Cocody" error={errors.commune} />
           <Field label="Quartier" value={values.district} onChangeText={set('district')} placeholder="Ex. : Riviera 2" />
           <Field label="Rue ou repère" value={values.street} onChangeText={set('street')} placeholder="Ex. : derrière la pharmacie" />
           <Field label="Instructions au livreur" value={values.instructions} onChangeText={set('instructions')} />

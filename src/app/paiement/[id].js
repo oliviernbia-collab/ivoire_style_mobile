@@ -190,8 +190,9 @@ export default function Paiement() {
       <View style={{ marginBottom: 14 }}>
         <PaymentChips codes={methods} value={current} onChange={setProvider} />
       </View>
-      <Field label="Numéro Mobile Money" required icon="phone" keyboardType="phone-pad" value={phone} onChangeText={setPhone} error={phoneError}
-        hint={USSD.includes(current) ? 'Vous recevrez une demande de code secret sur ce numéro.' : 'Le numéro du compte qui paie.'} />
+      <Field label={`Votre numéro ${paymentLabel(current)}`} required icon="phone" keyboardType="phone-pad" value={phone} onChangeText={setPhone} error={phoneError}
+        hint={`${USSD.includes(current) ? 'Vous recevrez une demande de code secret sur ce numéro. ' : 'Saisissez le numéro du compte qui va payer. '}`
+          + 'En cas d’annulation, le remboursement y sera envoyé.'} />
       {settings?.payment_mode === 'sandbox' && (
         <Text style={[ui.small, { backgroundColor: colors.goldSoft, padding: 12, borderRadius: 8, color: colors.goldDeep, marginBottom: 14 }]}>
           Mode démonstration : aucun débit réel. Choisissez le résultat de la transaction simulée.
