@@ -10,6 +10,7 @@ import { PaymentLabel } from '../../components/PaymentLogo';
 import { api } from '../../lib/api';
 import { date, DELIVERY_MODES, ORDER_STATUS, PAYMENT_PLANS, PAYMENT_STATUS, price, showPaymentStatus } from '../../lib/format';
 import { colors, radius } from '../../lib/theme';
+import { useLive } from '../../context/RealtimeContext';
 
 function Sheet({ visible, title, onClose, children }) {
   return (
@@ -27,6 +28,7 @@ function Sheet({ visible, title, onClose, children }) {
 export default function CommandeDetail() {
   const { id } = useLocalSearchParams();
   const { data: o, loading, error, reload } = useFetch(`/orders/${id}`);
+  useLive(['order', 'payment', 'refund', 'return'], () => reload(true));
   const { confirm, notify, showResult } = useFeedback();
   const [reviewing, setReviewing] = useState(null);
   const [returning, setReturning] = useState(false);

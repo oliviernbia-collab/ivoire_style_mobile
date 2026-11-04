@@ -6,6 +6,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { api } from '../lib/api';
 import { date } from '../lib/format';
 import { colors, radius } from '../lib/theme';
+import { useLive } from '../context/RealtimeContext';
 
 // Les liens des notifications sont ceux du site web : correspondance vers les écrans mobiles
 function mobileRoute(link) {
@@ -19,6 +20,7 @@ function mobileRoute(link) {
 
 export default function Notifications() {
   const { data, loading, error, reload } = useFetch('/account/notifications');
+  useLive('*', () => reload(true));
   const { notify } = useFeedback();
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} onRetry={reload} />;

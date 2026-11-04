@@ -61,6 +61,7 @@ export const tokens = {
     await store.del('ivs_refresh');
   },
   get refresh() { return refresh; },
+  get access() { return access; },
 };
 
 export const setSessionExpiredHandler = (fn) => { onExpired = fn; };
@@ -84,7 +85,13 @@ async function doRefresh() {
 }
 
 /** Appel API JSON ou multipart (body FormData). Renvoie { data, meta, message }. */
+// Heure de la dernière action de l'utilisateur : évite d'afficher en double la notification
+// temps réel d'une action qu'il vient lui-même de faire
+let lastActionAt = 0;
+export const recentOwnAction = (ms = 4000) => Date.now() - lastActionAt < ms;
+
 async function request(method, path, { body, params, retry = true } = {}) {
+  if (method !== 'GET') lastActionAt = Date.now();
   const qs = params ? `?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString()}` : '';
   const headers = { Accept: 'application/json' };
   if (access) headers.Authorization = `Bearer ${access}`;

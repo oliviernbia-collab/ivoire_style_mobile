@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
 import { FeedbackProvider } from '../context/FeedbackContext';
+import { RealtimeProvider } from '../context/RealtimeContext';
 import { colors } from '../lib/theme';
 
 export default function RootLayout() {
@@ -11,6 +12,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <FeedbackProvider>
         <AuthProvider>
+          <RealtimeProvider>
           <CartProvider>
             <StatusBar style="dark" />
             <Stack screenOptions={{
@@ -41,6 +43,7 @@ export default function RootLayout() {
               <Stack.Screen name="avantages" options={{ title: 'Mes avantages' }} />
             </Stack>
           </CartProvider>
+          </RealtimeProvider>
         </AuthProvider>
       </FeedbackProvider>
     </SafeAreaProvider>

@@ -4,9 +4,11 @@ import { Empty, ErrorView, Loader, ProductImage, StatusBadge, styles as ui, useF
 import { PaymentLabel } from '../../components/PaymentLogo';
 import { date, ORDER_STATUS, PAYMENT_PLANS, PAYMENT_STATUS, price, showPaymentStatus } from '../../lib/format';
 import { colors, radius } from '../../lib/theme';
+import { useLive } from '../../context/RealtimeContext';
 
 export default function Commandes() {
   const { data, loading, error, reload } = useFetch('/orders', { limit: 50 });
+  useLive(['order', 'payment', 'refund', 'return'], () => reload(true));
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} onRetry={reload} />;
   return (

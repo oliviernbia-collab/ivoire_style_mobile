@@ -10,6 +10,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { api, SERVER_URL } from '../lib/api';
 import { date, ORDER_STATUS, PAYMENT_PLANS, PRODUCT_STATUS, price } from '../lib/format';
 import { colors, radius } from '../lib/theme';
+import { useLive } from '../context/RealtimeContext';
 
 const WEB_URL = SERVER_URL.replace(':5000', ':5173');
 
@@ -48,6 +49,7 @@ function Stat({ icon, label, value }) {
 function Dashboard() {
   const { user } = useAuth();
   const { data: d, loading, error, reload } = useFetch('/seller/dashboard');
+  useLive(['seller_order', 'order', 'return', 'payout', 'refund', 'moderation'], () => reload(true));
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} onRetry={reload} />;
   return (
@@ -97,6 +99,7 @@ function Dashboard() {
 function Orders() {
   const [status, setStatus] = useState('confirmed');
   const { data, loading, error, reload } = useFetch('/seller/orders', { status, limit: 30 });
+  useLive(['seller_order', 'order', 'return', 'payout', 'refund', 'moderation'], () => reload(true));
   const { notify, confirm } = useFeedback();
   const [ship, setShip] = useState({});
 
@@ -170,6 +173,7 @@ function Orders() {
 
 function Products() {
   const { data, loading, error, reload } = useFetch('/seller/products', { limit: 50 });
+  useLive(['moderation'], () => reload(true));
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} onRetry={reload} />;
   return (

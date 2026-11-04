@@ -4,6 +4,7 @@ import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { Button, ErrorView, Field, Loader, Screen, styles as ui, useFetch } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { useFeedback } from '../../context/FeedbackContext';
+import { useLive } from '../../context/RealtimeContext';
 import { api } from '../../lib/api';
 import PaymentLogo, { PaymentChips, paymentLabel } from '../../components/PaymentLogo';
 import { PAYMENT_PLANS, price } from '../../lib/format';
@@ -48,6 +49,13 @@ export default function Paiement() {
     const t = setInterval(tick, POLL_MS);
     return () => { active = false; clearInterval(t); };
   }, [waiting, paymentId]);
+
+  // Confirmation reçue en temps réel (webhook Jèko) : mise à jour immédiate
+  useLive(['payment', 'order'], () => {
+    if (!waiting) return;
+    api.get(`/payments/${paymentId}`).then((r) => setLive(r.data)).catch(() => {});
+    order.reload(true);
+  });
 
   const status = p?.status;
   useEffect(() => {
