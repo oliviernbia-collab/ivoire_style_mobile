@@ -141,7 +141,7 @@ export default function Vendre() {
         </View>
         <Field label="Numéro / compte de reversement" required value={values.payout_account} onChangeText={set('payout_account')} error={errors.payout_account} />
         <Field label="Nom du titulaire du compte" value={values.payout_holder} onChangeText={set('payout_holder')} error={errors.payout_holder} />
-        <Text style={[ui.small, { color: colors.goldDeep }]}>Aucune commission : vous fixez votre prix, la plateforme ajoute 5 % payés par le client. Vous gérez vos livraisons ; l’argent payé en ligne vous est reversé après livraison.</Text>
+        <Text style={[ui.small, { color: colors.goldDeep }]}>Vous fixez votre prix : la plateforme ajoute 5 % payés par le client et retient 5 % de commission sur votre prix au reversement. Vous gérez vos livraisons (frais pour vous) ; l’argent payé en ligne vous est reversé automatiquement après livraison.</Text>
       </Card>
       <View style={[ui.row, { marginBottom: 6 }]}>
         <Switch value={values.accept_terms} onValueChange={set('accept_terms')} trackColor={{ true: colors.gold }} thumbColor="#fff" />
