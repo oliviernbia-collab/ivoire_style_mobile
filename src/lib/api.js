@@ -110,7 +110,8 @@ async function request(method, path, { body, params, retry = true } = {}) {
   } finally {
     clearTimeout(timer);
   }
-  if (res.status === 401 && retry && refresh && !path.startsWith('/auth/')) {
+  // Seules les routes d'identification sont exclues du renouvellement (pas /auth/me, /auth/me/avatar…)
+  if (res.status === 401 && retry && refresh && !/^\/auth\/(login|register|refresh|logout|forgot-password|reset-password)\b/.test(path)) {
     try {
       refreshing = refreshing || doRefresh().finally(() => { refreshing = null; });
       await refreshing;

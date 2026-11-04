@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { Button, Card, Field, Screen, styles as ui, useForm } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 import { useFeedback } from '../context/FeedbackContext';
-import { api } from '../lib/api';
+import { api, tokens } from '../lib/api';
+import { AvatarEditor } from '../components/Avatar';
 
 export default function Profil() {
   const { user, setUser, logout } = useAuth();
@@ -18,6 +19,8 @@ export default function Profil() {
   });
   const savePwd = pwd.submit(async (v) => {
     const res = await api.post('/auth/change-password', { current_password: v.current_password, new_password: v.new_password });
+    // Les autres sessions sont fermées : cet appareil garde la sienne avec les nouveaux jetons
+    if (res.data?.refresh_token) await tokens.set(res.data);
     pwd.setValues({ current_password: '', new_password: '', confirm: '' });
     return res;
   }, { validate: (v) => ({ confirm: v.new_password !== v.confirm && 'Les mots de passe ne correspondent pas' }) });
@@ -34,6 +37,7 @@ export default function Profil() {
   if (!user) return null;
   return (
     <Screen>
+      <Card><AvatarEditor /></Card>
       <Card>
         <Text style={[ui.h3, { marginBottom: 12 }]}>Informations personnelles</Text>
         <Field label="Prénom" value={profile.values.first_name} onChangeText={profile.set('first_name')} error={profile.errors.first_name} />

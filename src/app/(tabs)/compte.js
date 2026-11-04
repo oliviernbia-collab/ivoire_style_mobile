@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Icon } from '../../components/Icon';
+import { UserAvatar } from '../../components/Avatar';
 import { Button, Card, Screen, styles as ui } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -54,9 +55,9 @@ export default function Compte() {
   return (
     <Screen>
       <Card style={[ui.row, { padding: 18 }]}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontWeight: '800', fontSize: 18, color: colors.ink }}>{user.first_name[0]}{user.last_name[0]}</Text>
-        </View>
+        <Pressable onPress={() => router.push('/profil')} accessibilityLabel="Modifier ma photo de profil">
+          <UserAvatar user={user} size={56} />
+        </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={ui.h2}>{user.first_name} {user.last_name}</Text>
           <Text style={ui.small}>{user.email}</Text>
