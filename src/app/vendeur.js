@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Linking, RefreshControl, Share, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, Share, Text, TextInput, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { Icon } from '../components/Icon';
 import {
-  Badge, Button, Card, Chip, Empty, ErrorView, Loader, ProductImage, Screen, StatusBadge, styles as ui, useFetch,
+  Badge, Button, Card, Empty, ErrorView, Loader, ProductImage, Screen, StatusBadge, styles as ui, useFetch,
 } from '../components/ui';
+import { ChipRow, PERIODS, periodFrom, SearchBox } from '../components/Filters';
 import { useAuth } from '../context/AuthContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { api, SERVER_URL } from '../lib/api';
@@ -13,6 +14,19 @@ import { colors, radius } from '../lib/theme';
 import { useLive } from '../context/RealtimeContext';
 
 const WEB_URL = SERVER_URL.replace(':5000', ':5173');
+
+/**
+ * Ouvre une page de l'espace vendeur web connectée au compte de l'application : le navigateur du téléphone a sa
+ * propre session (parfois un autre compte). Un code à usage unique (2 min) est échangé par le site contre une session.
+ */
+async function openSellerWeb(path) {
+  try {
+    const { data } = await api.post('/auth/handoff');
+    await Linking.openURL(`${WEB_URL}/connexion-app?next=${encodeURIComponent(path)}#${data.code}`);
+  } catch {
+    await Linking.openURL(`${WEB_URL}${path}`);
+  }
+}
 
 /** Lien de la vitrine : les clients qui l'ouvrent ne voient que les articles de cette boutique. */
 function ShopLink({ shop }) {
@@ -71,7 +85,7 @@ function Dashboard() {
         <Card style={{ backgroundColor: colors.warningBg, borderColor: '#F3DDB0' }}>
           <Text style={{ color: colors.warning, marginBottom: 10 }}>Renseignez le compte qui recevra votre argent (opérateur, numéro et titulaire) pour être payé après vos ventes.</Text>
           <Button title="Compléter dans l’espace web" icon="up-right-from-square" size="sm" variant="outline"
-            onPress={() => Linking.openURL(`${WEB_URL}/vendeur/boutique#paiement`)} />
+            onPress={() => openSellerWeb('/vendeur/boutique#paiement')} />
         </Card>
       )}
       <ShopLink shop={user.shop} />
@@ -98,7 +112,8 @@ function Dashboard() {
 
 function Orders() {
   const [status, setStatus] = useState('confirmed');
-  const { data, loading, error, reload } = useFetch('/seller/orders', { status, limit: 30 });
+  const [f, setF] = useState({});
+  const { data, meta, loading, error, reload } = useFetch('/seller/orders', { status, limit: 30, q: f.q, from: periodFrom(f.period) });
   useLive(['seller_order', 'order', 'return', 'payout', 'refund', 'moderation'], () => reload(true));
   const { notify, confirm } = useFeedback();
   const [ship, setShip] = useState({});
@@ -125,12 +140,13 @@ function Orders() {
 
   return (
     <>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-        {[['confirmed', 'À traiter'], ['preparing', 'Préparation'], ['ready', 'Prêtes'], ['shipped', 'Expédiées'], ['delivered', 'Livrées'], ['', 'Toutes']].map(([k, l]) => (
-          <Chip key={k} label={l} on={status === k} onPress={() => setStatus(k)} />
-        ))}
-      </View>
-      {loading ? <Loader /> : error ? <ErrorView message={error} onRetry={reload} /> : data.length === 0 ? <Empty icon="box-open" title="Aucune commande" /> : data.map((o) => {
+      <SearchBox value={f.q} onSubmit={(q) => setF((s) => ({ ...s, q }))} placeholder="N° de commande, client ou téléphone" />
+      <ChipRow value={status} onChange={setStatus}
+        options={[['confirmed', 'À traiter'], ['preparing', 'Préparation'], ['ready', 'Prêtes'], ['shipped', 'Expédiées'], ['in_delivery', 'En livraison'], ['delivered', 'Livrées'], ['', 'Toutes']]} />
+      <ChipRow value={f.period} onChange={(period) => setF((s) => ({ ...s, period: period || undefined }))} options={PERIODS} />
+      {meta && (f.q || f.period) ? <Text style={[ui.small, { marginBottom: 10 }]}>{meta.total} commande(s)</Text> : null}
+      {loading ? <Loader /> : error ? <ErrorView message={error} onRetry={reload} /> : data.length === 0
+        ? <Empty icon="box-open" title="Aucune commande" text={f.q || f.period ? 'Aucune commande ne correspond à ces filtres.' : undefined} /> : data.map((o) => {
         const first = o.items[0];
         const next = first?.next_statuses?.[0];
         return (
@@ -181,7 +197,7 @@ function Products() {
       <Card style={{ backgroundColor: colors.goldSoft, borderColor: colors.goldLight }}>
         <Text style={[ui.small, { color: colors.goldDeep }]}>L’ajout et la modification détaillée des vêtements (photos, variantes) se font depuis l’espace vendeur web.</Text>
         <Button title="Ouvrir l’espace vendeur web" icon="up-right-from-square" size="sm" variant="outline" style={{ marginTop: 10 }}
-          onPress={() => Linking.openURL(`${SERVER_URL.replace(':5000', ':5173')}/vendeur/produits/nouveau`)} />
+          onPress={() => openSellerWeb('/vendeur/produits/nouveau')} />
       </Card>
       {data.length === 0 ? <Empty icon="shirt" title="Aucun vêtement" /> : data.map((p) => (
         <Card key={p.id} style={[ui.row, { padding: 10 }]}>
@@ -205,10 +221,19 @@ export default function Vendeur() {
   return (
     <Screen refreshControl={<RefreshControl refreshing={false} onRefresh={refreshUser} tintColor={colors.gold} />}>
       <Text style={[ui.h2, { marginBottom: 12 }]}><Icon name="store" size={16} color={colors.gold} />  {user.shop.name}</Text>
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-        <Chip label="Tableau de bord" icon="gauge-high" on={tab === 'dash'} onPress={() => setTab('dash')} />
-        <Chip label="Commandes" icon="box-open" on={tab === 'orders'} onPress={() => setTab('orders')} />
-        <Chip label="Vêtements" icon="shirt" on={tab === 'products'} onPress={() => setTab('products')} />
+      {/* Onglets de largeur égale : toujours visibles, même sur un petit écran */}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }} accessibilityRole="tablist">
+        {[['dash', 'Tableau de bord', 'gauge-high'], ['orders', 'Commandes', 'box-open'], ['products', 'Vêtements', 'shirt']].map(([k, label, icon]) => {
+          const on = tab === k;
+          return (
+            <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: on }}
+              style={{ flex: 1, alignItems: 'center', gap: 4, paddingVertical: 9, paddingHorizontal: 4, borderRadius: radius.md, borderWidth: 1.5,
+                borderColor: on ? colors.gold : colors.line, backgroundColor: on ? colors.goldLight : '#fff' }}>
+              <Icon name={icon} size={15} color={on ? colors.goldDeep : colors.gold} />
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 12, fontWeight: on ? '700' : '500', color: on ? colors.goldDeep : colors.ink2 }}>{label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
       {tab === 'dash' ? <Dashboard /> : tab === 'orders' ? <Orders /> : <Products />}
     </Screen>

@@ -1,0 +1,41 @@
+# Déploiement continu de l'application Android (EAS Workflows, déclenché par chaque envoi sur main)
+# - code natif inchangé (même empreinte qu'un APK existant) : mise à jour à distance, reçue par l'app au prochain lancement ;
+# - code natif modifié (nouveau module, app.json…) : un nouvel APK est compilé, à installer une fois.
+name: Déploiement Android
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  fingerprint:
+    name: Empreinte du code natif
+    type: fingerprint
+    environment: production
+
+  get_android_build:
+    name: APK existant pour cette empreinte ?
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      profile: preview
+
+  build_android:
+    name: Nouvel APK
+    needs: [get_android_build]
+    if: ${{ !needs.get_android_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: preview
+
+  publish_android_update:
+    name: Mise à jour à distance
+    needs: [get_android_build]
+    if: ${{ needs.get_android_build.outputs.build_id }}
+    type: update
+    environment: production
+    params:
+      channel: production
+      platform: android

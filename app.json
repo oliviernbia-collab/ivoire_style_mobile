@@ -21,6 +21,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
+        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -59,6 +60,12 @@
         "projectId": "14caf6f0-374f-45cb-b6ab-8cb46da7e1e2"
       }
     },
-    "owner": "kamenan"
+    "owner": "kamenan",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/14caf6f0-374f-45cb-b6ab-8cb46da7e1e2"
+    }
   }
 }
