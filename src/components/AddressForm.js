@@ -1,4 +1,5 @@
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Switch, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Chip, Field, styles as ui, useForm } from './ui';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
@@ -10,6 +11,7 @@ const ABIDJAN_COMMUNES = ['Abobo', 'Adjamé', 'Attécoubé', 'Cocody', 'Koumassi
 
 export default function AddressForm({ address, visible, onClose, onSaved }) {
   const { user } = useAuth();
+  const { bottom } = useSafeAreaInsets();
   const { values, set, errors, submitting, submit } = useForm({
     label: address?.label || 'Domicile',
     recipient_name: address?.recipient_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim(),
@@ -29,7 +31,7 @@ export default function AddressForm({ address, visible, onClose, onSaved }) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet">
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#fff' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 28 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 28, paddingBottom: 20 + bottom }} keyboardShouldPersistTaps="handled">
           <Text style={[ui.h2, { marginBottom: 16 }]}>{address?.id ? 'Modifier l’adresse' : 'Nouvelle adresse'}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             {['Domicile', 'Bureau', 'Famille', 'Autre'].map((l) => <Chip key={l} label={l} on={values.label === l} onPress={() => set('label')(l)} />)}

@@ -1,5 +1,6 @@
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { router, Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { Empty, ErrorView, Loader, styles as ui, useFetch } from '../components/ui';
 import { useFeedback } from '../context/FeedbackContext';
@@ -20,6 +21,7 @@ function mobileRoute(link) {
 
 export default function Notifications() {
   const { data, loading, error, reload } = useFetch('/account/notifications');
+  const { bottom } = useSafeAreaInsets();
   useLive('*', () => reload(true));
   const { notify } = useFeedback();
   if (loading) return <Loader />;
@@ -37,7 +39,7 @@ export default function Notifications() {
       <Stack.Screen options={{ headerRight: () => (data.unread > 0 ? <Pressable onPress={readAll}><Text style={ui.link}>Tout lire</Text></Pressable> : null) }} />
       <FlatList
         style={ui.screen}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 16 + bottom }}
         data={data.items}
         keyExtractor={(n) => String(n.id)}
         refreshing={false}

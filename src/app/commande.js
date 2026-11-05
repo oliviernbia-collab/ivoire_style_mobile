@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AddressForm from '../components/AddressForm';
 import { Icon } from '../components/Icon';
 import { Button, Card, Chip, Choice, Field, Loader, Screen, styles as ui, useFetch, useForm } from '../components/ui';
@@ -13,6 +14,7 @@ import { colors } from '../lib/theme';
 
 export default function Commande() {
   const { user } = useAuth();
+  const { bottom } = useSafeAreaInsets();
   const { cart, reload } = useCart();
   const { boutique } = useLocalSearchParams();
   const addresses = useFetch(user ? '/account/addresses' : null);
@@ -143,7 +145,7 @@ export default function Commande() {
           <View style={ui.between}><Text style={ui.muted}>Total</Text><Text style={{ fontWeight: '700' }}>{price(quote?.total ?? 0)}</Text></View>
         </Card>
       </Screen>
-      <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.line, gap: 6 }}>
+      <View style={{ padding: 16, paddingBottom: 16 + bottom, borderTopWidth: 1, borderTopColor: colors.line, gap: 6 }}>
         <View style={ui.between}><Text style={ui.h3}>À payer maintenant</Text><Text style={ui.h2}>{price(quote?.upfront ?? 0)}</Text></View>
         {quote?.balance > 0 && (
           <View style={ui.between}><Text style={ui.muted}>Au vendeur à la livraison</Text><Text style={{ fontWeight: '700', color: colors.ink }}>{price(quote.balance)}</Text></View>

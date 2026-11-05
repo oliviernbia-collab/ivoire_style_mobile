@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Dimensions, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
 import {
   Button, Chip, ErrorView, IconButton, Loader, Price, ProductCard, ProductImage, SectionTitle, Stars, styles as ui, useFetch,
@@ -17,6 +18,7 @@ const W = Dimensions.get('window').width;
 export default function Produit() {
   const { slug } = useLocalSearchParams();
   const { user } = useAuth();
+  const { bottom } = useSafeAreaInsets();
   const { add, favorites, toggleFavorite, cart } = useCart();
   const { data: p, loading, error, reload } = useFetch(`/products/${slug}`, null, [user?.id]);
   // Sélection propre à chaque produit : valeurs par défaut tant que l'utilisateur n'a rien choisi
@@ -194,7 +196,7 @@ export default function Produit() {
         </View>
       </ScrollView>
 
-      <View style={{ padding: 12, paddingBottom: 18, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row', gap: 10, backgroundColor: '#fff' }}>
+      <View style={{ padding: 12, paddingBottom: 18 + bottom, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: 'row', gap: 10, backgroundColor: '#fff' }}>
         {outOfStock ? <Button title="Rupture de stock" disabled style={{ flex: 1 }} /> : <>
           <Button title={variant ? 'Ajouter' : 'Choisir la taille'} icon="cart-plus" variant="outline" disabled={!variant} loading={adding} onPress={() => onAdd(false)} style={{ flex: 1 }} />
           <Button title="Acheter" icon="bolt" disabled={!variant || adding} onPress={() => onAdd(true)} style={{ flex: 1 }} />

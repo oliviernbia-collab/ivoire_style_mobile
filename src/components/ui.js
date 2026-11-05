@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from './Icon';
 import { api, fileUrl, videoPoster } from '../lib/api';
 import { colors, radius } from '../lib/theme';
@@ -200,9 +201,10 @@ export function Grid({ data, renderItem, columns = 2, gap = 12 }) {
 }
 
 export function Screen({ children, scroll = true, style, refreshControl }) {
+  const { bottom } = useSafeAreaInsets();
   if (!scroll) return <View style={[styles.screen, style]}>{children}</View>;
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[{ padding: 16, paddingBottom: 40 }, style]} refreshControl={refreshControl} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.screen} contentContainerStyle={[{ padding: 16, paddingBottom: 40 + bottom }, style]} refreshControl={refreshControl} keyboardShouldPersistTaps="handled">
       {children}
     </ScrollView>
   );

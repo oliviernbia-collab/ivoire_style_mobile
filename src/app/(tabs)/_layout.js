@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
 import { useCart } from '../../context/CartContext';
 import { colors } from '../../lib/theme';
@@ -19,11 +20,13 @@ function TabIcon({ name, color, badge }) {
 
 export default function TabsLayout() {
   const { cart } = useCart();
+  // Android bord à bord : la barre d'onglets se place au-dessus des boutons du téléphone
+  const { bottom } = useSafeAreaInsets();
   return (
     <Tabs screenOptions={{
       tabBarActiveTintColor: colors.goldDark,
       tabBarInactiveTintColor: '#9A9A9A',
-      tabBarStyle: { backgroundColor: '#fff', borderTopColor: colors.line, height: 62, paddingTop: 6 },
+      tabBarStyle: { backgroundColor: '#fff', borderTopColor: colors.line, height: 62 + bottom, paddingTop: 6, paddingBottom: bottom },
       tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginBottom: 6 },
       headerStyle: { backgroundColor: '#fff' },
       headerShadowVisible: false,

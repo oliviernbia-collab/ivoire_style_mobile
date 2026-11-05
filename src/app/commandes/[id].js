@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../../components/Icon';
 import {
   Button, Card, ErrorView, Field, Loader, ProductImage, Screen, StatusBadge, styles as ui, useFetch, useForm,
@@ -13,10 +14,11 @@ import { colors, radius } from '../../lib/theme';
 import { useLive } from '../../context/RealtimeContext';
 
 function Sheet({ visible, title, onClose, children }) {
+  const { bottom } = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-        <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 }}>
+        <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 32 + bottom }}>
           <View style={[ui.between, { marginBottom: 14 }]}><Text style={ui.h2}>{title}</Text><Pressable onPress={onClose} hitSlop={10}><Icon name="xmark" size={18} /></Pressable></View>
           {children}
         </View>

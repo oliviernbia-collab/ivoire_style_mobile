@@ -1,5 +1,6 @@
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Empty, ErrorView, Loader, ProductImage, StatusBadge, styles as ui, useFetch } from '../../components/ui';
 import { PaymentLabel } from '../../components/PaymentLogo';
 import { date, ORDER_STATUS, PAYMENT_PLANS, PAYMENT_STATUS, price, showPaymentStatus } from '../../lib/format';
@@ -8,13 +9,14 @@ import { useLive } from '../../context/RealtimeContext';
 
 export default function Commandes() {
   const { data, loading, error, reload } = useFetch('/orders', { limit: 50 });
+  const { bottom } = useSafeAreaInsets();
   useLive(['order', 'payment', 'refund', 'return'], () => reload(true));
   if (loading) return <Loader />;
   if (error) return <ErrorView message={error} onRetry={reload} />;
   return (
     <FlatList
       style={ui.screen}
-      contentContainerStyle={{ padding: 16 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 16 + bottom }}
       data={data}
       keyExtractor={(o) => String(o.id)}
       refreshing={false}
