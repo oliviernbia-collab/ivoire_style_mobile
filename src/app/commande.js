@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Linking, Text, TextInput, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AddressForm from '../components/AddressForm';
@@ -7,13 +7,19 @@ import { Icon } from '../components/Icon';
 import { Button, Card, Chip, Choice, Field, Loader, Screen, styles as ui, useFetch, useForm } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useFeedback } from '../context/FeedbackContext';
 import { api } from '../lib/api';
-import { PaymentChips } from '../components/PaymentLogo';
+import { PaymentChips, paymentLabel } from '../components/PaymentLogo';
 import { DELIVERY_MODES, price } from '../lib/format';
 import { colors } from '../lib/theme';
 
+// Opérateurs qui confirment par USSD (demande de code sur le téléphone)
+const USSD = ['mtn_momo', 'moov_money'];
+const validPhone = (raw) => /^(01|05|07)\d{8}$/.test(String(raw || '').replace(/\D/g, '').replace(/^(00)?225/, ''));
+
 export default function Commande() {
   const { user } = useAuth();
+  const { notify } = useFeedback();
   const { bottom } = useSafeAreaInsets();
   const { cart, reload } = useCart();
   const { boutique } = useLocalSearchParams();
@@ -24,8 +30,9 @@ export default function Commande() {
   const [quoteError, setQuoteError] = useState(null);
   const [promoInput, setPromoInput] = useState('');
   const myPromos = useFetch(user ? '/account/promotions' : null);
-  const { values, set, setValues, submitting, submit } = useForm({
+  const { values, set, setValues, errors, submitting, submit } = useForm({
     address_id: null, delivery_mode: 'home', payment_plan: 'full', payment_method: 'orange_money', note: '', promo_code: '',
+    payer_phone: user?.phone || '',
   });
   const applyPromo = (code) => { setPromoInput(code); set('promo_code')(code.trim().toUpperCase()); };
 
@@ -61,15 +68,35 @@ export default function Commande() {
       sub: `Acompte obligatoire de ${settings?.deposit_rate ?? 10} % en ligne, le reste à la livraison.` }] : []),
   ];
 
+  const jeko = settings?.payment_mode === 'jeko';
+
+  /**
+   * Paiement en 1 clic : la commande est créée et, en mode Jèko, le paiement part aussitôt chez l'opérateur
+   * (application Orange / Wave, ou code USSD MTN / Moov). L'écran de paiement attend la confirmation.
+   */
   const onSubmit = submit(async (v) => {
     const res = await api.post('/orders', {
       ...v, shop_id: shopId, delivery_mode: quote?.delivery_mode || v.delivery_mode,
       promo_code: quote?.promo ? v.promo_code : undefined, // code transmis seulement s'il a été validé par le devis
-    });
+      payer_phone: jeko ? v.payer_phone : undefined, return_to: 'app',
+    }, { timeout: 90000 }); // l'opérateur de paiement est contacté dans la foulée
     await reload();
-    const { order, payment } = res.data;
-    router.replace({ pathname: '/paiement/[id]', params: { id: payment.id, commande: order.id } });
-  }, { toastSuccess: false, validate: (v) => ({ address_id: !v.address_id && 'Ajoutez une adresse de livraison' }) });
+    const { order, payment, instructions, payment_error: payError } = res.data;
+    const started = jeko && instructions && !payError;
+    router.replace({
+      pathname: '/paiement/[id]',
+      params: { id: payment.id, commande: order.id, ...(started ? { retour: '1' } : {}) },
+    });
+    if (started && instructions.type === 'redirect' && instructions.url) await Linking.openURL(instructions.url);
+    else if (started) notify.info(instructions.message);
+    else if (payError) notify.error(`Commande enregistrée, mais le paiement n’a pas pu démarrer : ${payError}`);
+  }, {
+    toastSuccess: false,
+    validate: (v) => ({
+      address_id: !v.address_id && 'Ajoutez une adresse de livraison',
+      payer_phone: jeko && !validPhone(v.payer_phone) && 'Numéro ivoirien à 10 chiffres (01, 05 ou 07…)',
+    }),
+  });
 
   const shopName = items[0]?.shop_name;
 
@@ -99,6 +126,13 @@ export default function Commande() {
           {values.payment_plan === 'full' ? 'Payer avec' : 'Payer la part en ligne avec'}
         </Text>
         <PaymentChips codes={settings?.payment_methods || []} value={values.payment_method} onChange={set('payment_method')} />
+        {jeko && (
+          <Field label={`Votre numéro ${paymentLabel(values.payment_method)}`} required error={errors.payer_phone}
+            hint={`${USSD.includes(values.payment_method) ? 'Vous recevrez une demande de code secret sur ce numéro. ' : `Vous serez redirigé vers ${paymentLabel(values.payment_method)} pour valider. `}`
+              + 'En cas d’annulation, le remboursement y sera envoyé.'}
+            value={values.payer_phone} onChangeText={set('payer_phone')} keyboardType="phone-pad" placeholder="07 00 00 00 00"
+            style={{ marginTop: 12 }} />
+        )}
         {settings?.payment_mode === 'sandbox' && (
           <Text style={[ui.small, { backgroundColor: colors.goldSoft, padding: 10, borderRadius: 8, color: colors.goldDeep, marginTop: 10 }]}>Mode démonstration : le paiement Mobile Money est simulé, aucun débit réel.</Text>
         )}

@@ -101,7 +101,7 @@ export default function Paiement() {
     if (!checkPhone()) return;
     setBusy('success');
     try {
-      const r = await api.post('/payments/initiate', { order_id: o.id, provider: current, payer_phone: phone, return_to: 'app' });
+      const r = await api.post('/payments/initiate', { order_id: o.id, provider: current, payer_phone: phone, return_to: 'app' }, { timeout: 90000 });
       const { payment: attempt, instructions } = r.data;
       setPaymentId(attempt.id);
       setLive(null);

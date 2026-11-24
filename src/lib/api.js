@@ -90,7 +90,7 @@ async function doRefresh() {
 let lastActionAt = 0;
 export const recentOwnAction = (ms = 4000) => Date.now() - lastActionAt < ms;
 
-async function request(method, path, { body, params, retry = true } = {}) {
+async function request(method, path, { body, params, retry = true, timeout } = {}) {
   if (method !== 'GET') lastActionAt = Date.now();
   const qs = params ? `?${new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString()}` : '';
   const headers = { Accept: 'application/json' };
@@ -99,7 +99,7 @@ async function request(method, path, { body, params, retry = true } = {}) {
   if (body && !isForm) headers['Content-Type'] = 'application/json';
   const controller = new AbortController();
   // Envois de fichiers (relayés vers Cloudinary) : délai plus long
-  const timer = setTimeout(() => controller.abort(), isForm ? 120000 : 20000);
+  const timer = setTimeout(() => controller.abort(), timeout || (isForm ? 120000 : 20000));
   let res;
   try {
     res = await fetch(`${API_URL}${path}${qs}`, {
@@ -115,7 +115,7 @@ async function request(method, path, { body, params, retry = true } = {}) {
     try {
       refreshing = refreshing || doRefresh().finally(() => { refreshing = null; });
       await refreshing;
-      return request(method, path, { body, params, retry: false });
+      return request(method, path, { body, params, timeout, retry: false });
     } catch {
       await tokens.clear();
       onExpired();
@@ -128,7 +128,8 @@ async function request(method, path, { body, params, retry = true } = {}) {
 
 export const api = {
   get: (p, params) => request('GET', p, { params }),
-  post: (p, body) => request('POST', p, { body }),
+  // timeout (ms) : délai plus long pour les appels qui contactent l'opérateur de paiement
+  post: (p, body, { timeout } = {}) => request('POST', p, { body, timeout }),
   put: (p, body) => request('PUT', p, { body }),
   patch: (p, body) => request('PATCH', p, { body }),
   del: (p) => request('DELETE', p),
